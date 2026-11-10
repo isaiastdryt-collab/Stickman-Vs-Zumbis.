@@ -1,0 +1,34 @@
+name: Android debug APK
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configurar templates e SDK
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config/godot"
+          cp -a /root/.local/share/godot/export_templates/4.3.stable "$HOME/.local/share/godot/export_templates/" || test -d "$HOME/.local/share/godot/export_templates/4.3.stable"
+          cp -a /root/.config/godot/. "$HOME/.config/godot/" || true
+      - name: Importar projeto
+        run: godot --headless --path . --editor --quit
+      - name: Teste do jogo
+        run: godot --headless --path . --script res://tests/smoke.gd
+      - name: Exportar APK debug
+        run: |
+          mkdir -p build
+          godot --headless --path . --export-debug Android "$(pwd)/build/stickman-vs-zumbis-debug.apk"
+          test -s build/stickman-vs-zumbis-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stickman-vs-zumbis-debug
+          path: build/stickman-vs-zumbis-debug.apk
+          if-no-files-found: error
+          
